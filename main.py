@@ -8,6 +8,7 @@ import schemas as schemas
 from repositories import ItemRepo
 from sqlalchemy.orm import Session
 import uvicorn
+import json
 from typing import List,Optional
 from fastapi.encoders import jsonable_encoder
 
@@ -27,7 +28,10 @@ def validation_exception_handler(request, err):
 def upload_file(db: Session = Depends(get_db), file: UploadFile = File(...) ):
     excel_data_df = pd.read_excel(file.file)
     json_str = excel_data_df.to_json(orient="records")
-    print('Excel Sheet to JSON:\n', json_str)
+    #print('Excel Sheet to JSON:\n', json_str)
+    d = json.loads(json_str)
+    for i in d:
+        ItemRepo.create(db=db,item=i)
     file.file.close()
     return {"filename": file.filename}
 

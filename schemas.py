@@ -24,3 +24,8 @@ class Item(ItemBase):
         orm_mode = True
 
 
+def list_serializer(prd_list):
+    return [product for product in prd_list]
+
+class product_list(BaseModel):
+    data : List [ItemBase]

@@ -16,7 +16,14 @@ class ItemRepo:
         db.commit()
         db.refresh(db_item)
         return db_item
-    
+ async def create_all(db: Session, item: schemas.product_list):
+        db_item = schemas.list_serializer(item.data)
+        db.add(db_item)
+        db.commit()
+        db.refresh(db_item)
+        return db_item
+
+
  def fetch_by_id(db: Session,_id):
      return db.query(models.Item).filter(models.Item.id == _id).first()
 
