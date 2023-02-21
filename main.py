@@ -30,11 +30,12 @@ async def upload_file( file: UploadFile = File(...) ):
     excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
     return {"filename": file.filename}
 
-@app.post("/export/{item_id}", tags=["Item"],response_model=schemas.Item)
-async def export_file( file: UploadFile = File(...) ):
-    excel_data_df = pd.read_excel(file.file)
-    excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
-    return {"filename": file.filename}
+@app.get("/export/{date}", tags=["Item"],response_model=schemas.Item)
+async def export_file( date: str,db: Session = Depends(get_db)):
+    db_item = ItemRepo.fetchall(db,date)
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Item not found with the given ID")
+    return ItemRepo.fetch_by_month(db,date)
 
 @app.post('/items', tags=["Item"],response_model=schemas.Item,status_code=201)
 async def create_item(item_request: schemas.ItemCreate, db: Session = Depends(get_db)):

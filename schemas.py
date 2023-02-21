@@ -7,6 +7,7 @@ class ItemBase(BaseModel):
     product: str
     seller: str
     price : float
+    date: str
     location: str
     categories: str
   
