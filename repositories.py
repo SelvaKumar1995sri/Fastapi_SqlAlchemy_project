@@ -28,7 +28,7 @@ class ItemRepo:
      return db.query(models.Item).filter(models.Item.id == _id).first()
 
  def fetch_by_month(db: Session,date):
-     return db.query(models.Item).filter(models.Item.order_date== date).first()
+     return db.query(models.Item).filter(models.Item.date== date).first()
  
  def fetch_by_name(db: Session,product):
      return db.query(models.Item).filter(models.Item.product == product).first()
@@ -40,7 +40,11 @@ class ItemRepo:
      db_item= db.query(models.Item).filter_by(id=item_id).first()
      db.delete(db_item)
      db.commit()
-     
+
+#  async def delete_all(db: Session,skip: int = 0, limit: int = 100):
+#      data = db.query(models.Item).filter(skip).limit(limit).all()
+#      db.delete(data)
+#      db.commit() 
      
  async def update(db: Session,item_data):
     updated_item = db.merge(item_data)

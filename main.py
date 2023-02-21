@@ -9,8 +9,11 @@ from repositories import ItemRepo
 from sqlalchemy.orm import Session
 import uvicorn
 import json
+from sqlalchemy import text
 from typing import List,Optional
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import StreamingResponse
+from io import BytesIO
 
 app = FastAPI(title="Sample FastAPI Application",
     description="Sample FastAPI Application with Swagger and Sqlalchemy",
@@ -30,12 +33,18 @@ async def upload_file( file: UploadFile = File(...) ):
     excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
     return {"filename": file.filename}
 
-@app.get("/export/{date}", tags=["Item"],response_model=schemas.Item)
-async def export_file( date: str,db: Session = Depends(get_db)):
-    db_item = ItemRepo.fetchall(db,date)
-    if db_item is None:
-        raise HTTPException(status_code=404, detail="Item not found with the given ID")
-    return ItemRepo.fetch_by_month(db,date)
+@app.get("/export/", tags=["Item"],response_model=List[schemas.Item])
+async def export_file( db: Session = Depends(get_db)):
+    query = 'SELECT * FROM items'
+    with engine.begin() as conn:
+        df = pd.read_sql_query(sql=text(query), con=conn)
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer) as writer:
+        df.to_excel(writer, index=False)
+    return StreamingResponse(
+        BytesIO(buffer.getvalue()),
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={"Content-Disposition": f"attachment; filename=data.xlsx"})
 
 @app.post('/items', tags=["Item"],response_model=schemas.Item,status_code=201)
 async def create_item(item_request: schemas.ItemCreate, db: Session = Depends(get_db)):
@@ -65,6 +74,11 @@ async def delete_item(item_id: int,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Item not found with the given ID")
     await ItemRepo.delete(db,item_id)
     return "Item deleted successfully!"
+
+# @app.delete('/formatall',tags=["Item"])
+# async def format_all(db:Session=Depends(get_db)):
+#     await ItemRepo.delete_all(db)
+#     return "Item formated successfully!"
 
 @app.put('/items/{item_id}', tags=["Item"],response_model=schemas.Item)
 async def update_item(item_id: int,item_request: schemas.Item, db: Session = Depends(get_db)):
