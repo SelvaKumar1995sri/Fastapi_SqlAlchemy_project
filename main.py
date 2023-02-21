@@ -33,7 +33,7 @@ async def upload_file( file: UploadFile = File(...) ):
     excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
     return {"filename": file.filename}
 
-@app.get("/export/", tags=["Item"],response_model=List[schemas.Item])
+@app.get("/export/{month}", tags=["Item"],response_model=List[schemas.Item])
 async def export_file( db: Session = Depends(get_db)):
     query = 'SELECT * FROM items'
     with engine.begin() as conn:
