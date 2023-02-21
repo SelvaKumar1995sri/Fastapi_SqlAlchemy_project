@@ -25,21 +25,19 @@ def validation_exception_handler(request, err):
 
 
 @app.post("/upload")
-def upload_file(db: Session = Depends(get_db), file: UploadFile = File(...) ):
+async def upload_file( file: UploadFile = File(...) ):
     excel_data_df = pd.read_excel(file.file)
-    json_str = excel_data_df.to_json(orient="records")
-    #print('Excel Sheet to JSON:\n', json_str)
-    d = json.loads(json_str)
-    for i in d:
-        ItemRepo.create(db=db,item=i)
-    file.file.close()
+    excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
+    return {"filename": file.filename}
+
+@app.post("/export/{item_id}", tags=["Item"],response_model=schemas.Item)
+async def export_file( file: UploadFile = File(...) ):
+    excel_data_df = pd.read_excel(file.file)
+    excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
     return {"filename": file.filename}
 
 @app.post('/items', tags=["Item"],response_model=schemas.Item,status_code=201)
 async def create_item(item_request: schemas.ItemCreate, db: Session = Depends(get_db)):
-    """
-    Create an Item and store it in the database
-    """
     db_item = ItemRepo.fetch_by_name(db, product=item_request.product)
     if db_item:
         raise HTTPException(status_code=400, detail="Item already exists!")
@@ -75,9 +73,12 @@ async def update_item(item_id: int,item_request: schemas.Item, db: Session = Dep
     db_item = ItemRepo.fetch_by_id(db, item_id)
     if db_item:
         update_item_encoded = jsonable_encoder(item_request)
-        db_item.name = update_item_encoded['name']
+        db_item.product = update_item_encoded['product']
+        db_item.seller = update_item_encoded['seller']
         db_item.price = update_item_encoded['price']
-        db_item.description = update_item_encoded['description']
+        db_item.date = update_item_encoded['date']
+        db_item.location = update_item_encoded['location']
+        db_item.categories = update_item_encoded['categories']
         return await ItemRepo.update(db=db, item_data=db_item)
     else:
         raise HTTPException(status_code=400, detail="Item not found with the given ID")

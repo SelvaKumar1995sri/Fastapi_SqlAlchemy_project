@@ -18,7 +18,7 @@ class ItemCreate(ItemBase):
 
 class Item(ItemBase):
     id: int
-    date: Optional[datetime.datetime]
+    #date: Optional[datetime.datetime]
 
     class Config:
         orm_mode = True

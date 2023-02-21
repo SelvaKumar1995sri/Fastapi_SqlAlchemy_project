@@ -17,8 +17,8 @@ class ItemRepo:
         db.refresh(db_item)
         return db_item
  async def create_all(db: Session, item: schemas.product_list):
-        db_item = schemas.list_serializer(item.data)
-        db.add(db_item)
+        db_item = schemas.list_serializer(item)
+        db.add_all(db_item)
         db.commit()
         db.refresh(db_item)
         return db_item
