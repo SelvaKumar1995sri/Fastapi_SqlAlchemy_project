@@ -11,12 +11,12 @@ class Item(Base):
     product = Column(String(100), nullable=False,index=True)
     seller = Column(String(80),nullable=False,index=True)
     price = Column(Float(precision=2), nullable=False)
-    date = Column(String(10),nullable=False)
+    date = Column(DateTime(timezone=True), default=datetime.now().date())
     location = Column(String(200))
     categories = Column(String(200))
     
     
-    
+#date = Column(String(10),nullable=False)
 #DateTime(timezone=True), default=datetime.now().date()
     #json_str = excel_data_df.to_json(orient="records")
     #print('Excel Sheet to JSON:\n', json_str)

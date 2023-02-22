@@ -1,5 +1,5 @@
 from typing import List, Optional
-import datetime
+from datetime import datetime
 from pydantic import BaseModel
 
 
@@ -7,7 +7,7 @@ class ItemBase(BaseModel):
     product: str
     seller: str
     price : float
-    date: str
+    date: Optional[datetime]
     location: str
     categories: str
   
@@ -19,7 +19,7 @@ class ItemCreate(ItemBase):
 
 class Item(ItemBase):
     id: int
-    #date: Optional[datetime.datetime]
+    date: Optional[datetime]
 
     class Config:
         orm_mode = True

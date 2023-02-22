@@ -1,40 +1,41 @@
 from fastapi import Depends, FastAPI, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+from sqlalchemy.orm import Session
+import uvicorn
+from sqlalchemy import text
+from typing import List,Optional
+from fastapi.encoders import jsonable_encoder
+from io import BytesIO
+
 import models 
 import pandas as pd
 from db import get_db, engine
 import models as models
 import schemas as schemas
 from repositories import ItemRepo
-from sqlalchemy.orm import Session
-import uvicorn
-import json
-from sqlalchemy import text
-from typing import List,Optional
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import StreamingResponse
-from io import BytesIO
 
-app = FastAPI(title="Sample FastAPI Application",
-    description="Sample FastAPI Application with Swagger and Sqlalchemy",
+
+
+
+app = FastAPI(title="FastAPI Application",
+    description="FastAPI Application with Swagger and Sqlalchemy",
     version="1.0.0",)
 
 models.Base.metadata.create_all(bind=engine)
-
 @app.exception_handler(Exception)
 def validation_exception_handler(request, err):
     base_error_message = f"Failed to execute: {request.method}: {request.url}"
     return JSONResponse(status_code=400, content={"message": f"{base_error_message}. Detail: {err}"})
 
 
-@app.post("/upload")
+@app.post("/upload", tags=["Item"],response_model=List[schemas.Item])
 async def upload_file( file: UploadFile = File(...) ):
     excel_data_df = pd.read_excel(file.file)
     excel_data_df.to_sql('items', con=engine, if_exists='append', index=False)
     return {"filename": file.filename}
 
-@app.get("/export/{month}", tags=["Item"],response_model=List[schemas.Item])
-async def export_file( db: Session = Depends(get_db)):
+@app.get("/exportall/", tags=["Item"],response_model=List[schemas.Item])
+async def export_all( ):
     query = 'SELECT * FROM items'
     with engine.begin() as conn:
         df = pd.read_sql_query(sql=text(query), con=conn)
@@ -45,6 +46,13 @@ async def export_file( db: Session = Depends(get_db)):
         BytesIO(buffer.getvalue()),
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={"Content-Disposition": f"attachment; filename=data.xlsx"})
+
+@app.get('/monthlydata/{date}', tags=["Item"],response_model=schemas.Item)
+def get_item(date: int,db: Session = Depends(get_db)):
+    db_item = ItemRepo.fetch_by_month(db,date)
+    if db_item is None:
+        raise HTTPException(status_code=404, detail="Item not found with the given ID")
+    return db_item
 
 @app.post('/items', tags=["Item"],response_model=schemas.Item,status_code=201)
 async def create_item(item_request: schemas.ItemCreate, db: Session = Depends(get_db)):
@@ -82,9 +90,7 @@ async def delete_item(item_id: int,db: Session = Depends(get_db)):
 
 @app.put('/items/{item_id}', tags=["Item"],response_model=schemas.Item)
 async def update_item(item_id: int,item_request: schemas.Item, db: Session = Depends(get_db)):
-    """
-    Update an Item stored in the database
-    """
+
     db_item = ItemRepo.fetch_by_id(db, item_id)
     if db_item:
         update_item_encoded = jsonable_encoder(item_request)

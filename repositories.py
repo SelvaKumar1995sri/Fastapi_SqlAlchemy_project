@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import extract
 import models
 import schemas
 
@@ -27,8 +28,9 @@ class ItemRepo:
  def fetch_by_id(db: Session,_id):
      return db.query(models.Item).filter(models.Item.id == _id).first()
 
- def fetch_by_month(db: Session,date):
-     return db.query(models.Item).filter(models.Item.date== date).first()
+ def fetch_by_month(date: str,db: Session):
+    return db.query(models.Item.date).filter( models.Item.date == date)
+    #return db.query(models.Item).filter(models.Item.date== date).first()
  
  def fetch_by_name(db: Session,product):
      return db.query(models.Item).filter(models.Item.product == product).first()
